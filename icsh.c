@@ -35,6 +35,11 @@ void process_cmd(char* cmd)
         printf("Goodbye\n");
         exit(exit_code);
     }
+    else
+    {
+        printf("bad command\n");
+        return;
+    }
     
     strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
 }
