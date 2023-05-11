@@ -10,12 +10,17 @@
 #define MAX_CMD_BUFFER 255
 
 int script_mode = 0;
+int prev_exit = 0;
 
 void process_cmd(char* cmd)
 {
     static char prev_cmd[MAX_CMD_BUFFER] = {0};
 
-    if (strncmp(cmd, "echo ", 5) == 0)
+    if (strcmp(cmd, "echo $") == 0)
+    {
+        printf("%d\n", prev_exit);
+    }
+    else if (strncmp(cmd, "echo ", 5) == 0)
     {
         printf("%s\n", cmd + 5);
     }
@@ -41,7 +46,7 @@ void process_cmd(char* cmd)
 
         if (script_mode == 1)
         {
-            return;
+            prev_exit = exit_code;
         }
         else
         {
