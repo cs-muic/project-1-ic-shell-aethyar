@@ -16,7 +16,6 @@ void process_cmd(char* cmd)
     if (strncmp(cmd, "echo ", 5) == 0)
     {
         printf("%s\n", cmd + 5);
-        strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
     }
     else if (strcmp(cmd, "!!") == 0)
     {
