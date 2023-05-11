@@ -8,6 +8,7 @@
 #define MAX_CMD_BUFFER 255
 
 int main() {
+    printf("Starting IC shell\n");
     char buffer[MAX_CMD_BUFFER];
     while (1) {
         printf("icsh $ ");
