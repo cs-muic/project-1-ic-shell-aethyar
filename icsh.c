@@ -52,7 +52,6 @@ int main()
     {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
-        // printf("you said: %s\n", buffer);
 
         buffer[strcspn(buffer, "\n")] = 0; // remove newline character
         if (strlen(buffer) != 0)
