@@ -9,15 +9,42 @@
 
 #define MAX_CMD_BUFFER 255
 
-int main() {
+void process_cmd(char* cmd)
+{
+    static char prev_cmd[MAX_CMD_BUFFER] = {0};
+
+    if (strncmp(cmd, "echo ", 5) == 0)
+    {
+        printf("%s\n", cmd + 5);
+        strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
+    }
+    else if (strcmp(cmd, "!!") == 0)
+    {
+        if (strlen(prev_cmd) != 0) 
+        {
+            printf("%s\n", prev_cmd);
+            process_cmd(prev_cmd);
+        }
+        return;
+    }
+    
+    strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
+}
+
+int main()
+{
     printf("Starting IC shell\n");
     char buffer[MAX_CMD_BUFFER];
-    while (1) {
+    while (1) 
+    {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
         // printf("you said: %s\n", buffer);
-        if (strncmp(buffer, "echo ", 5) == 0) {
-            printf("%s", buffer + 5);
+
+        buffer[strcspn(buffer, "\n")] = 0; // remove newline character
+        if (strlen(buffer) != 0)
+        {
+            process_cmd(buffer);
         }
     }
 }
