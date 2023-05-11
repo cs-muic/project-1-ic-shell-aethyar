@@ -29,7 +29,8 @@ void process_cmd(char* cmd)
     else if (strncmp(cmd, "exit ", 5) == 0) 
     {
         int exit_code = atoi(cmd + 5);
-        if (exit_code > 255) {
+        if (exit_code > 255)
+        {
             exit_code = 255;
         }
         printf("Goodbye\n");
@@ -44,16 +45,39 @@ void process_cmd(char* cmd)
     strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     printf("Starting IC shell\n");
     char buffer[MAX_CMD_BUFFER];
+
+    if (argc > 1)
+    {
+        FILE* script_file = fopen(argv[1], "r");
+        if (script_file == NULL) 
+        {
+            printf("Error reading argument\n");
+        }
+        else 
+        {
+            fgets(buffer, MAX_CMD_BUFFER, script_file);
+            while (fgets(buffer, MAX_CMD_BUFFER, script_file))
+            {
+                buffer[strcspn(buffer, "\r\n")] = 0;
+                if (strlen(buffer) != 0)
+                {
+                    process_cmd(buffer);
+                }
+            }
+            fclose(script_file);
+        }
+
+    }
     while (1) 
     {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
 
-        buffer[strcspn(buffer, "\n")] = 0; // remove newline character
+        buffer[strcspn(buffer, "\r\n")] = 0;
         if (strlen(buffer) != 0)
         {
             process_cmd(buffer);
