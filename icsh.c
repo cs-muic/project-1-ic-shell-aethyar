@@ -15,51 +15,54 @@ int prev_exit = 0;
 void process_cmd(char* cmd)
 {
     static char prev_cmd[MAX_CMD_BUFFER] = {0};
-
-    if (strcmp(cmd, "echo $") == 0)
+    cmd[strcspn(cmd, "\r\n")] = 0;
+    if (strlen(cmd) != 0)
     {
-        printf("%d\n", prev_exit);
-    }
-    else if (strncmp(cmd, "echo ", 5) == 0)
-    {
-        printf("%s\n", cmd + 5);
-    }
-    else if (strcmp(cmd, "!!") == 0)
-    {
-        if (strlen(prev_cmd) != 0) 
+        if (strcmp(cmd, "echo $") == 0)
         {
-            if (script_mode == 0)
+            printf("%d\n", prev_exit);
+        }
+        else if (strncmp(cmd, "echo ", 5) == 0)
+        {
+            printf("%s\n", cmd + 5);
+        }
+        else if (strcmp(cmd, "!!") == 0)
+        {
+            if (strlen(prev_cmd) != 0) 
             {
-                printf("%s\n", prev_cmd);
+                if (script_mode == 0)
+                {
+                    printf("%s\n", prev_cmd);
+                }
+                process_cmd(prev_cmd);
             }
-            process_cmd(prev_cmd);
+            return;
         }
-        return;
-    }
-    else if (strncmp(cmd, "exit ", 5) == 0) 
-    {
-        int exit_code = atoi(cmd + 5);
-        if (exit_code > 255)
+        else if (strncmp(cmd, "exit ", 5) == 0) 
         {
-            exit_code = 255;
-        }
+            int exit_code = atoi(cmd + 5);
+            if (exit_code > 255)
+            {
+                exit_code = 255;
+            }
 
-        if (script_mode == 1)
-        {
-            prev_exit = exit_code;
+            if (script_mode == 1)
+            {
+                prev_exit = exit_code;
+            }
+            else
+            {
+                printf("Goodbye\n");
+                exit(exit_code);
+            }
         }
         else
         {
-            printf("Goodbye\n");
-            exit(exit_code);
+            printf("bad command\n");
+            return;
         }
+        strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
     }
-    else
-    {
-        printf("bad command\n");
-        return;
-    }
-    strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
 }
 
 int main(int argc, char *argv[])
@@ -80,11 +83,7 @@ int main(int argc, char *argv[])
             fgets(buffer, MAX_CMD_BUFFER, script_file);
             while (fgets(buffer, MAX_CMD_BUFFER, script_file))
             {
-                buffer[strcspn(buffer, "\r\n")] = 0;
-                if (strlen(buffer) != 0)
-                {
-                    process_cmd(buffer);
-                }
+                process_cmd(buffer);
             }
             fclose(script_file);
         }
@@ -95,10 +94,6 @@ int main(int argc, char *argv[])
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
 
-        buffer[strcspn(buffer, "\r\n")] = 0;
-        if (strlen(buffer) != 0)
-        {
-            process_cmd(buffer);
-        }
+        process_cmd(buffer);
     }
 }
