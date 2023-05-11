@@ -26,6 +26,15 @@ void process_cmd(char* cmd)
         }
         return;
     }
+    else if (strncmp(cmd, "exit ", 5) == 0) 
+    {
+        int exit_code = atoi(cmd + 5);
+        if (exit_code > 255) {
+            exit_code = 255;
+        }
+        printf("Goodbye\n");
+        exit(exit_code);
+    }
     
     strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
 }
