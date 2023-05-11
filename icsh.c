@@ -9,6 +9,8 @@
 
 #define MAX_CMD_BUFFER 255
 
+int script_mode = 0;
+
 void process_cmd(char* cmd)
 {
     static char prev_cmd[MAX_CMD_BUFFER] = {0};
@@ -21,7 +23,10 @@ void process_cmd(char* cmd)
     {
         if (strlen(prev_cmd) != 0) 
         {
-            printf("%s\n", prev_cmd);
+            if (script_mode == 0)
+            {
+                printf("%s\n", prev_cmd);
+            }
             process_cmd(prev_cmd);
         }
         return;
@@ -33,15 +38,22 @@ void process_cmd(char* cmd)
         {
             exit_code = 255;
         }
-        printf("Goodbye\n");
-        exit(exit_code);
+
+        if (script_mode == 1)
+        {
+            return;
+        }
+        else
+        {
+            printf("Goodbye\n");
+            exit(exit_code);
+        }
     }
     else
     {
         printf("bad command\n");
         return;
     }
-    
     strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
 }
 
@@ -52,6 +64,7 @@ int main(int argc, char *argv[])
 
     if (argc > 1)
     {
+        script_mode = 1;
         FILE* script_file = fopen(argv[1], "r");
         if (script_file == NULL) 
         {
@@ -70,7 +83,7 @@ int main(int argc, char *argv[])
             }
             fclose(script_file);
         }
-
+        script_mode = 0;
     }
     while (1) 
     {
