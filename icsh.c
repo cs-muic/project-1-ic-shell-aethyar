@@ -12,6 +12,9 @@ int main() {
     while (1) {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
-        printf("you said: %s\n", buffer);
+        // printf("you said: %s\n", buffer);
+        if (strncmp(buffer, "echo ", 5) == 0) {
+            printf("%s\n", buffer + 5);
+        }
     }
 }
