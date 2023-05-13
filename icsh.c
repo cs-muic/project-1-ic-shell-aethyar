@@ -12,6 +12,27 @@
 int script_mode = 0;
 int prev_exit = 0;
 
+void external_cmd(char* cmd)
+{
+    int status;
+    int pid;
+
+    if ((pid=fork()) < 0)
+    {
+        perror("Fork failed");
+        exit(1);
+    }
+    if (!pid)
+    {
+        char* args[] = {"/bin/sh", "-c", cmd, NULL};
+        execvp(args[0], args);
+    }
+    if (pid) 
+    {
+        waitpid(pid, &status, 0);
+    }
+}
+
 void process_cmd(char* cmd)
 {
     static char prev_cmd[MAX_CMD_BUFFER] = {0};
@@ -58,8 +79,7 @@ void process_cmd(char* cmd)
         }
         else
         {
-            printf("bad command\n");
-            return;
+            external_cmd(cmd);
         }
         strncpy(prev_cmd, cmd, MAX_CMD_BUFFER);
     }
