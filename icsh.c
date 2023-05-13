@@ -30,6 +30,9 @@ void external_cmd(char* cmd)
     if (pid) 
     {
         waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            printf("bad command\n");
+        }
     }
 }
 
