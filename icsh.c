@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         printf("icsh $ ");
-        fgets(buffer, 255, stdin);
+        fgets(buffer, MAX_CMD_BUFFER, stdin);
 
         process_cmd(buffer);
     }
