@@ -57,7 +57,7 @@ void process_cmd(char *cmd)
     cmd[strcspn(cmd, "\r\n")] = 0;
     if (strlen(cmd) != 0)
     {
-        if (strcmp(cmd, "echo $") == 0)
+        if (strcmp(cmd, "echo $?") == 0)
         {
             printf("%d\n", prev_exit);
         }
