@@ -6,11 +6,22 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "signal.h"
+#include "sys/types.h"
 
 #define MAX_CMD_BUFFER 255
 
 int script_mode = 0;
 int prev_exit = 0;
+pid_t fg_process = 0;
+
+void signal_handler(int sig)
+{
+    if (fg_process != 0)
+    {
+        kill(fg_process, sig);
+    }
+}
 
 void external_cmd(char *cmd)
 {
@@ -29,7 +40,10 @@ void external_cmd(char *cmd)
     }
     if (pid)
     {
+        fg_process = pid;
         waitpid(pid, &status, 0);
+        fg_process = 0;
+
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
         {
             printf("bad command\n");
@@ -94,6 +108,9 @@ int main(int argc, char *argv[])
     printf("Starting IC shell\n");
     char buffer[MAX_CMD_BUFFER];
 
+    signal(20, signal_handler);
+    signal(2, signal_handler);
+
     if (argc > 1)
     {
         script_mode = 1;
@@ -117,7 +134,6 @@ int main(int argc, char *argv[])
     {
         printf("icsh $ ");
         fgets(buffer, MAX_CMD_BUFFER, stdin);
-
         process_cmd(buffer);
     }
 }
