@@ -7,7 +7,10 @@
 #include "stdlib.h"
 #include "string.h"
 #include "signal.h"
+#include "unistd.h"
 #include "sys/types.h"
+#include "sys/wait.h"
+#include "fcntl.h"
 
 #define MAX_CMD_BUFFER 255
 
@@ -35,8 +38,63 @@ void external_cmd(char *cmd)
     }
     if (!pid)
     {
-        char *args[] = {"/bin/sh", "-c", cmd, NULL};
+        char *args[MAX_CMD_BUFFER];
+        char *separator = " \t\n";
+        char *token = strtok(cmd, separator);
+        int i = 0;
+        while (token != NULL) 
+        {
+            args[i++] = token;
+            token = strtok(NULL, separator);
+        }
+        args[i] = NULL;
+
+        int i_redir = -1;
+        int o_redir = -1;
+
+        for (int j = 0; args[j] != NULL; j++) 
+        {
+            if (strcmp(args[j], "<") == 0) 
+            {
+                i_redir = open(args[j + 1], O_RDONLY);
+                if (i_redir == -1) 
+                {
+                    perror("Error with input file!");
+                    exit(1);
+                }
+                args[j] = NULL;
+            } 
+            else if (strcmp(args[j], ">") == 0) 
+            {
+                o_redir = open(args[j + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                if (o_redir == -1) 
+                {
+                    perror("Error with output file!");
+                    exit(1);
+                }
+                args[j] = NULL;
+            }
+        }
+
+        if (i_redir != -1) {
+            if (dup2(i_redir, STDIN_FILENO) == -1) 
+            {
+                perror("Failed to redirect input!");
+                exit(1);
+            }
+            close(i_redir);
+        }
+        if (o_redir != -1) {
+            if (dup2(o_redir, STDOUT_FILENO) == -1) 
+            {
+                perror("Failed to redirect output!");
+                exit(1);
+            }
+            close(o_redir);
+        }
+
         execvp(args[0], args);
+        exit(1);
     }
     if (pid)
     {
@@ -60,10 +118,6 @@ void process_cmd(char *cmd)
         if (strcmp(cmd, "echo $?") == 0)
         {
             printf("%d\n", prev_exit);
-        }
-        else if (strncmp(cmd, "echo ", 5) == 0)
-        {
-            printf("%s\n", cmd + 5);
         }
         else if (strcmp(cmd, "!!") == 0)
         {
