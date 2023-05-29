@@ -59,7 +59,7 @@ void external_cmd(char *cmd)
                 i_redir = open(args[j + 1], O_RDONLY);
                 if (i_redir == -1) 
                 {
-                    perror("Error with input file!");
+                    perror("Error with input file");
                     exit(1);
                 }
                 args[j] = NULL;
@@ -69,7 +69,7 @@ void external_cmd(char *cmd)
                 o_redir = open(args[j + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 if (o_redir == -1) 
                 {
-                    perror("Error with output file!");
+                    perror("Error with output file");
                     exit(1);
                 }
                 args[j] = NULL;
@@ -79,7 +79,7 @@ void external_cmd(char *cmd)
         if (i_redir != -1) {
             if (dup2(i_redir, STDIN_FILENO) == -1) 
             {
-                perror("Failed to redirect input!");
+                perror("Failed to redirect input");
                 exit(1);
             }
             close(i_redir);
@@ -87,7 +87,7 @@ void external_cmd(char *cmd)
         if (o_redir != -1) {
             if (dup2(o_redir, STDOUT_FILENO) == -1) 
             {
-                perror("Failed to redirect output!");
+                perror("Failed to redirect output");
                 exit(1);
             }
             close(o_redir);
