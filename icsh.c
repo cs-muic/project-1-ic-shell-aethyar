@@ -20,15 +20,15 @@ int prev_exit = 0;
 char prev_cmd[MAX_CMD_BUFFER] = {0};
 pid_t fg_process = 0;
 
-typedef struct 
+typedef struct
 {
     pid_t pid;
     char cmd[MAX_CMD_BUFFER];
-    int status;
+    int status; // 1 for Running, 0 for Stopped
 } Job;
 
-Job jobs[MAX_JOBS];
-int job_count = 0;
+Job jobs[MAX_JOBS]; // collection of background processes
+int job_count = 0;  // number of background process
 
 void external_cmd(char *cmd)
 {
@@ -40,23 +40,25 @@ void external_cmd(char *cmd)
         perror("Fork failed");
         exit(1);
     }
-    
+
+    // identify if bg_process with &
     int bg = 0;
     char orig_cmd[MAX_CMD_BUFFER];
-    strcpy(orig_cmd, cmd);
-    if (cmd[strlen(cmd) - 1] == '&')
+    strcpy(orig_cmd, cmd);  // save & to store cmd for later
+    if (cmd[strlen(cmd)-1] == '&')
     {
         bg = 1;
-        cmd[strlen(cmd) - 1] = '\0';
+        cmd[strlen(cmd)-1] = '\0';  // run as external_cmd without &
     }
 
     if (!pid)
     {
+        // I/O implementation inspired from a StackOverflow post
         char *args[MAX_CMD_BUFFER];
         char *separator = " \t\n";
         char *token = strtok(cmd, separator);
         int i = 0;
-        while (token != NULL) 
+        while (token != NULL)
         {
             args[i++] = token;
             token = strtok(NULL, separator);
@@ -66,22 +68,22 @@ void external_cmd(char *cmd)
         int i_redir = -1;
         int o_redir = -1;
 
-        for (int j = 0; args[j] != NULL; j++) 
+        for (int j = 0; args[j] != NULL; j++)
         {
-            if (strcmp(args[j], "<") == 0) 
+            if (strcmp(args[j], "<") == 0)
             {
-                i_redir = open(args[j + 1], O_RDONLY);
-                if (i_redir == -1) 
+                i_redir = open(args[j+1], O_RDONLY);
+                if (i_redir == -1)
                 {
                     perror("Error with input file");
                     exit(1);
                 }
                 args[j] = NULL;
-            } 
-            else if (strcmp(args[j], ">") == 0) 
+            }
+            else if (strcmp(args[j], ">") == 0)
             {
-                o_redir = open(args[j + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                if (o_redir == -1) 
+                o_redir = open(args[j+1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                if (o_redir == -1)
                 {
                     perror("Error with output file");
                     exit(1);
@@ -90,9 +92,9 @@ void external_cmd(char *cmd)
             }
         }
 
-        if (i_redir != -1) 
+        if (i_redir != -1)
         {
-            if (dup2(i_redir, STDIN_FILENO) == -1) 
+            if (dup2(i_redir, STDIN_FILENO) == -1)
             {
                 perror("Failed to redirect input");
                 exit(1);
@@ -101,7 +103,7 @@ void external_cmd(char *cmd)
         }
         if (o_redir != -1)
         {
-            if (dup2(o_redir, STDOUT_FILENO) == -1) 
+            if (dup2(o_redir, STDOUT_FILENO) == -1)
             {
                 perror("Failed to redirect output");
                 exit(1);
@@ -116,6 +118,7 @@ void external_cmd(char *cmd)
     {
         if (bg == 1)
         {
+            // store into jobs collection
             printf("[%d] %d\n", job_count+1, pid);
             jobs[job_count].pid = pid;
             strncpy(jobs[job_count].cmd, orig_cmd, MAX_CMD_BUFFER);
@@ -124,6 +127,7 @@ void external_cmd(char *cmd)
         }
         else
         {
+            // run process normally as a fg_process
             fg_process = pid;
             waitpid(pid, &status, 0);
             fg_process = 0;
@@ -165,15 +169,11 @@ void process_cmd(char *cmd)
                 exit_code = 255;
             }
 
-            if (script_mode == 1)
-            {
-                prev_exit = exit_code;
-            }
-            else
+            if (script_mode == 0)
             {
                 printf("Goodbye\n");
-                exit(exit_code);
             }
+            exit(exit_code);
         }
         else if (strncmp(cmd, "jobs", 4) == 0)
         {
@@ -183,17 +183,17 @@ void process_cmd(char *cmd)
                 pid_t result = waitpid(jobs[i].pid, &status, WNOHANG | WUNTRACED);
                 if (result == 0 && jobs[i].status == 1)
                 {
-                    printf("[%d]-  Running           %s\n", i+1, jobs[i].cmd);
+                    printf("[%d]-  Running                 %s\n", i+1, jobs[i].cmd);
                 }
                 else if (WIFSTOPPED(status) || jobs[i].status == 0)
                 {
-                    printf("[%d]+  Stopped           %s\n", i+1, jobs[i].cmd);
+                    printf("[%d]+  Stopped                 %s\n", i+1, jobs[i].cmd);
                 }
             }
         }
         else if (strncmp(cmd, "fg %%", 4) == 0)
         {
-            int job_id = atoi(cmd+4);
+            int job_id = atoi(cmd + 4);
             if (job_id > 0 && job_id <= job_count)
             {
                 printf("%s\n", jobs[job_id-1].cmd);
@@ -207,9 +207,9 @@ void process_cmd(char *cmd)
                 printf("Invalid job ID\n");
             }
         }
-        else if (strncmp(cmd, "bg %%", 4) == 0)
+        else if (strncmp(cmd, "bg %%", 4) == 0)  // sad attempt
         {
-            int job_id = atoi(cmd+4);
+            int job_id = atoi(cmd + 4);
             if (job_id > 0 && job_id <= job_count)
             {
                 pid_t job_pid = jobs[job_id-1].pid;
@@ -229,7 +229,7 @@ void process_cmd(char *cmd)
     }
 }
 
-void check_background_jobs()
+void check_background_jobs()  // readjust jobs with each bg_process completion
 {
     int status;
     pid_t terminated_pid;
@@ -240,12 +240,12 @@ void check_background_jobs()
         {
             if (jobs[i].pid == terminated_pid)
             {
-                printf("\n[%d]+  Done              %s\n", i+1, jobs[i].cmd);
+                printf("\n[%d]+  Done                    %s\n", i+1, jobs[i].cmd);
                 printf("icsh $ ");
                 fflush(stdout);
-                for (int j = i; j < job_count - 1; j++)
+                for (int j = i; j < job_count-1; j++)
                 {
-                    jobs[j] = jobs[j + 1];
+                    jobs[j] = jobs[j+1];
                 }
                 job_count--;
                 break;
@@ -258,7 +258,7 @@ void signal_handler(int sig)
 {
     if (fg_process != 0)
     {
-        if (sig == SIGTSTP)
+        if (sig == SIGTSTP)  // sad attempt with incorporating into Milestone 6
         {
             jobs[job_count+1].pid = fg_process;
             strncpy(jobs[job_count+1].cmd, prev_cmd, MAX_CMD_BUFFER);
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
     printf("Starting IC shell\n");
     char buffer[MAX_CMD_BUFFER];
 
-    struct sigaction action = { 0 };
+    struct sigaction action = {0};
     action.sa_handler = signal_handler;
     sigaction(SIGTSTP, &action, NULL);
     sigaction(SIGINT, &action, NULL);
@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
             }
             fclose(script_file);
         }
-        script_mode = 0;
+        return 0;
     }
     while (1)
     {
