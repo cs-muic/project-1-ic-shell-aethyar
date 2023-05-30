@@ -17,6 +17,7 @@
 
 int script_mode = 0;
 int prev_exit = 0;
+char prev_cmd[MAX_CMD_BUFFER] = {0};
 pid_t fg_process = 0;
 
 typedef struct 
@@ -137,7 +138,6 @@ void external_cmd(char *cmd)
 
 void process_cmd(char *cmd)
 {
-    static char prev_cmd[MAX_CMD_BUFFER] = {0};
     cmd[strcspn(cmd, "\r\n")] = 0;
     if (strlen(cmd) != 0)
     {
@@ -181,7 +181,7 @@ void process_cmd(char *cmd)
             {
                 int status;
                 pid_t result = waitpid(jobs[i].pid, &status, WNOHANG | WUNTRACED);
-                if (result == 0)
+                if (result == 0 && jobs[i].status == 1)
                 {
                     printf("[%d]-  Running           %s\n", i+1, jobs[i].cmd);
                 }
@@ -213,7 +213,7 @@ void process_cmd(char *cmd)
             if (job_id > 0 && job_id <= job_count)
             {
                 pid_t job_pid = jobs[job_id-1].pid;
-                jobs[job_id-1].status = 0;
+                jobs[job_id-1].status = 1;
                 kill(job_pid, SIGCONT);
             }
             else
@@ -240,7 +240,7 @@ void check_background_jobs()
         {
             if (jobs[i].pid == terminated_pid)
             {
-                printf("\n[%d]+  Done              %s\n", i + 1, jobs[i].cmd);
+                printf("\n[%d]+  Done              %s\n", i+1, jobs[i].cmd);
                 printf("icsh $ ");
                 fflush(stdout);
                 for (int j = i; j < job_count - 1; j++)
@@ -258,7 +258,20 @@ void signal_handler(int sig)
 {
     if (fg_process != 0)
     {
-        kill(fg_process, sig);
+        if (sig == SIGTSTP)
+        {
+            jobs[job_count+1].pid = fg_process;
+            strncpy(jobs[job_count+1].cmd, prev_cmd, MAX_CMD_BUFFER);
+            jobs[job_count+1].status = 0;
+            printf("\n[%d]+  Stopped           %s\n", job_count+1, jobs[job_count].cmd);
+            job_count++;
+            kill(fg_process, sig);
+            fg_process = 0;
+        }
+        else if (sig == SIGINT)
+        {
+            kill(fg_process, sig);
+        }
     }
     printf("\n");
     fflush(stdout);
